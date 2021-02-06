@@ -1,9 +1,8 @@
 ; 引导扇区
 	org 07c00h
 
+%include "load.inc"
 BaseOfStack 			equ	07c00h	; 堆栈基址，从该地址开始向低地址生长
-BaseOfLoader 			equ 09000h	; LOADER.BIN 被加载到的段地址
-OffsetOfLoader 			equ 0100h	; LOADER.BIN 被加载到的偏移地址
 MessageLength 			equ 9		; 为方便操作，屏幕显示字符串长度尽量设为9字节
 
 	jmp short LABEL_START

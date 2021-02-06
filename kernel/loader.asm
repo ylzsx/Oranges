@@ -2,13 +2,28 @@
     org 0100h
 
 BaseOfStack         equ 0100h   ; 堆栈基址，从该地址开始向低地址生长
-BaseOfKernelFile    equ 08000h  ; KERNEL.BIN 被加载到的段地址
-OffsetOfKernelFile  equ 0h      ; KERNEL.BIN 被加载到的偏移地址
 MessageLength       equ 9       ; 为方便操作，屏幕显示字符串长度尽量设为9字节
 
     jmp LABEL_BEGIN
 
 %include "fat12hdr.inc"
+%include "load.inc"
+%include "pm.inc"
+
+; GDT
+LABEL_GDT:          Descriptor       0,          0,                          0
+LABEL_DESC_FLAT_C:  Descriptor       0,    0fffffh,    DA_CR|DA_32|DA_LIMIT_4K   ; 0~4G
+LABEL_DESC_FLAT_RW: Descriptor       0,    0fffffh,   DA_DRW|DA_32|DA_LIMIT_4K   ; 0~4G
+LABEL_DESC_VIDEO:   Descriptor 0B8000h,     0ffffh,             DA_DRW|DA_DPL3
+
+GdtLen equ $ - LABEL_GDT
+GdtPtr dw  GdtLen - 1
+       dd  BaseOfLoaderPhyAddr + LABEL_GDT
+
+SelectorFlatC   equ LABEL_DESC_FLAT_C - LABEL_GDT
+SelectorFlatRW  equ LABEL_DESC_FLAT_RW - LABEL_GDT
+SelectorVideo   equ LABEL_DESC_VIDEO - LABEL_GDT + SA_RPL3
+; GDT end
 
 ; 变量
 wRootDirSizeForLoop dw RootDirSectors   ; 根目录占用扇区数，即查找根目录时，最外层循环次数
@@ -29,7 +44,25 @@ LABEL_BEGIN:
     mov sp, BaseOfStack
 
     mov dh, 0
-    call DispStr
+    call DispStrRealMode
+
+    ; 得到内存数(实模式下才能使用int 15h中断)
+    mov ebx, 0
+    mov di, _MemChkBuf
+.loop:
+    mov eax, 0E820h
+    mov ecx, 20
+    mov edx, 0534D4150h     ; edx = 'SMAP'
+    int 15h                 ; CF=1表示发生错误；ebx=0表示结束
+    jc LABEL_MEM_CHK_FAIL   ; CF=1时跳转
+    add di, 20                  ; do {
+    inc dword [_dwMCRNumber]    ;   _asm {int 15h;}
+    cmp ebx, 0                  ;   if (CF = 1) [_dwMCRNumber]=0; fail
+    jne .loop                   ;   else {
+    jmp LABEL_MEM_CHK_OK        ;       di = di +20;
+LABEL_MEM_CHK_FAIL:             ;       [_dwMCRNumber] += 1;
+    mov dword [_dwMCRNumber], 0 ;   }
+LABEL_MEM_CHK_OK:               ; } while (ebx != 0);
 
     ; 软驱复位
     xor ah, ah
@@ -83,7 +116,7 @@ LABEL_GOTO_NEXT_SECTION_IN_ROOT_DIR:
 
 LABEL_NO_KERNELBIN:
     mov dh, 2
-    call DispStr
+    call DispStrRealMode
     jmp $                       ; 没有找到 KERNEL.BIN ，进入死循环
 
 LABEL_FILENAME_FOUND:           ; 找到 KERNEL.BIN 目录项，根据FAT到数据区加载 KERNEL.BIN
@@ -132,15 +165,31 @@ LABEL_FILE_LOADED:
     call KillMotor          ; 关闭软驱马达
 
     mov dh, 1
-    call DispStr
-    jmp BaseOfKernelFile:OffsetOfKernelFile     ; 将控制权转交给操作系统的启动项KERNEL.BIN
+    call DispStrRealMode
 
+    ; 进入保护模式 ----------------------------------------------
+    lgdt [GdtPtr]
+
+    ; 关中断
+    cli
+
+    ; 打开地址线A20
+    in al, 92h
+    or al, 00000010b
+    out 92h, al
+
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+    jmp dword SelectorFlatC:(BaseOfLoaderPhyAddr + LABEL_PM_START)
+
+    jmp $     ; 将控制权转交给操作系统的启动项KERNEL.BIN
 
 
 
 ; 打印字符串
 ; 传入参数：dh: 打印数组序号
-DispStr:
+DispStrRealMode:
     push ax
     push bx
     push cx
@@ -167,7 +216,8 @@ DispStr:
     pop bx
     pop ax
     ret
-; DispStr End
+; DispStrRealMode End
+
 
 
 ; 读取一个扇区
@@ -267,3 +317,214 @@ KillMotor:
     pop dx
     ret
 ; KillMotor End
+
+
+; 数据段
+[SECTION .data1]
+ALIGN 32
+LABEL_DATA:
+    ; 实模式下
+    _szMemChkTitle      db  "BaseAddrL BaseAddrH LengthLow LengthHigh    Type", 0Ah, 0  ; 内存检查标题
+    _szRAMSize          db  "RAM size:", 0
+    _szReturn           db  0Ah, 0  ; 换行符
+    _dwMCRNumber        dd  0       ; Memory Check Result Number
+    _dwDispPos          dd  (80 * 6 + 0) * 2    ; 打印屏幕位置
+    _dwMemSize          dd  0
+    _ARDStruct: ; 地址范围描述符,20字节
+        _dwBaseAddrLow  dd  0
+        _dwBaseAddrHigh dd  0
+        _dwLengthLow    dd  0
+        _dwLengthHigh   dd  0
+        _dwType         dd  0
+    _MemChkBuf  times 256 db 0 ; 最多能放12个地址范围描述符
+
+    ; 保护模式下
+    szMemChkTitle       equ BaseOfLoaderPhyAddr + _szMemChkTitle
+    szRAMSize           equ BaseOfLoaderPhyAddr + _szRAMSize
+    szReturn            equ BaseOfLoaderPhyAddr + _szReturn
+    dwMCRNumber         equ BaseOfLoaderPhyAddr + _dwMCRNumber
+    dwDispPos           equ BaseOfLoaderPhyAddr + _dwDispPos
+    dwMemSize           equ BaseOfLoaderPhyAddr + _dwMemSize
+    ARDStruct:          equ BaseOfLoaderPhyAddr + _ARDStruct
+        dwBaseAddrLow   equ BaseOfLoaderPhyAddr + _dwBaseAddrLow
+        dwBaseAddrHigh  equ BaseOfLoaderPhyAddr + _dwBaseAddrHigh
+        dwLengthLow     equ BaseOfLoaderPhyAddr + _dwLengthLow
+        dwLengthHigh    equ BaseOfLoaderPhyAddr + _dwLengthHigh
+        dwType          equ BaseOfLoaderPhyAddr + _dwType
+    MemChkBuf           equ BaseOfLoaderPhyAddr + _MemChkBuf
+
+; 堆栈段位于数据段末尾
+StackSpace:
+    times 1000h db  0
+TopOfStack      equ BaseOfLoaderPhyAddr + $
+
+
+; 32位保护模式代码段
+[SECTION .s32]
+ALIGN 32
+[BITS 32]
+LABEL_PM_START:
+    mov ax, SelectorVideo
+    mov gs, ax
+    mov ax, SelectorFlatRW
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov ss, ax
+    mov esp, TopOfStack
+
+    push szMemChkTitle
+    call DispStr
+    add esp, 4
+
+    call DispMemInfo
+    call SetupPaging
+
+    mov ah, 0Fh
+    mov al, 'P'
+    mov [gs:((80 * 0 + 39) * 2)], ax
+
+    call InitKernel
+
+    ; 正式进入内核
+    jmp SelectorFlatC:KernelEntryPointPhyAddr
+
+
+; 启动分页机制
+SetupPaging:
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push edi
+
+    xor edx, edx
+    mov eax, [dwMemSize]
+    mov ebx, 400000h        ; 400000h = 4M = 4096 * 1024, 一个页表对应的内存大小
+    div ebx                 ; eax / ebx = eax ... edx
+    mov ecx, eax
+    test edx, edx
+    jz .no_remainder
+    inc ecx
+.no_remainder:
+    push ecx                ; 暂存页表个数
+
+    ; 简化处理，所有线性地址对应相等的物理地址，且不考虑内存空洞
+    ; 初始化页目录表PDE
+    mov ax, SelectorFlatRW
+    mov es, ax
+    mov edi, PageDirBase
+    xor eax, eax
+    mov eax, PageTblBase | PG_P | PG_USU | PG_RWW   ; 使第一个PDE中的页表首地址为PageTblBase,属性为存在的可读可写用户级页表
+.1:
+    stosd   ; eax -> es:edi, edi = edi + 4
+    add eax, 4096
+    loop .1
+
+    ; 初始化所有页表PTE
+    pop eax             ; 页表个数
+    mov ebx, 1024       ; 每个页表1024个PTE
+    mul ebx             ; eax * ebx = edx,eax
+    mov ecx, eax
+    mov edi, PageTblBase
+    xor eax, eax
+    mov eax, PG_P | PG_USU | PG_RWW
+.2:
+    stosd
+    add eax, 4096
+    loop .2
+
+    mov eax, PageDirBase
+    mov cr3, eax
+    mov eax, cr0
+    or eax, 80000000h
+    mov cr0, eax
+
+    pop edi
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+    ret
+; SetupPaging End
+
+; 显示内存信息
+DispMemInfo:
+    push esi
+    push edi
+    push eax
+    push ecx
+    push edx
+    
+    mov esi, MemChkBuf
+    mov ecx, [dwMCRNumber]  ; for (i = 0; i < [dwMCRNumber]; i++) {
+.loop:                      ;     
+    mov edx, 5              ;     for (j = 0; j < 5; j++) {
+    mov edi, ARDStruct      ; 
+.1:                         ; 
+    push dword [esi]        ; 
+    call DispInt            ;         DispInt(MemChkBuf[j*4]);
+    call DispSpace          ;         printf(" ");
+    pop eax                 ;
+    stosd                   ;         ARDStruct[j*4] = MemChkBuf[j*4];
+    add esi, 4              ;
+    dec edx                 ;
+    cmp edx, 0              ;
+    jnz .1                  ;     }
+    call DispReturn         ;     printf("\n");
+    cmp dword [dwType], 1   ;     if ([dwType] == AddressRangeMemory) {
+    jne .2                  ;
+    mov eax, [dwBaseAddrLow];
+    add eax, [dwLengthLow]  ;         if ([dwBaseAddrLow] + [dwLengthLow] > [dwMemSize]) {
+    cmp eax, [dwMemSize]    ;             [dwMemSize] = [dwBaseAddrLow] + [dwLengthLow];
+    jb .2                   ;         }
+    mov [dwMemSize], eax    ;             
+.2:                         ;     }
+    loop .loop              ; }
+
+    call DispReturn          ; printf("\n");
+    push szRAMSize          ;
+    call DispStr            ; printf("RAM size:");
+    add esp, 4
+    push dword [dwMemSize]  ;
+    call DispInt            ; printf("%d", [dwMemSize]);
+    add esp, 4
+
+    pop edx
+    pop ecx
+    pop eax
+    pop edi
+    pop esi
+    ret
+; DispMemSize End
+
+
+; 将 KERNEL.BIN 的内容整理对齐后放到新的位置
+; 遍历每个 Program Header，将对应段放到内存对应位置
+InitKernel:
+    xor esi, esi
+    xor ecx, ecx
+    mov cx, word [BaseOfKernelFilePhyAddr + 2Ch]    ; ecx <- pELFHdr->e_phnum, Program Header Table中的条目数
+    mov esi, [BaseOfKernelFilePhyAddr + 1Ch]        ; esi <- pELFHdr->e_phoff, Program Header Table在文件中的偏移量
+    add esi, BaseOfKernelFilePhyAddr                ; esi <- Program Header Table在内存中的首地址
+
+.Begin: ; void *MemCpy(void* es:pDest, void* ds:pSrc, int size)
+    mov eax, [esi + 0]
+    cmp eax, 0                  ; PT_NULL
+    jz .NoAction
+    push dword [esi + 010h]     ; 段在文件中的长度
+    mov eax, [esi + 04h]        ; 段的第一个字节在文件中的偏移
+    add eax, BaseOfKernelFilePhyAddr
+    push eax
+    push dword [esi + 08h]      ; 段的第一个字节在内存中的虚拟地址
+    call MemCpy
+    add esp, 12
+
+.NoAction:
+    add esi, [BaseOfKernelFilePhyAddr + 2Ah]
+    dec ecx
+    jnz .Begin
+
+    ret
+; InitKernel End
+%include "lib.inc"

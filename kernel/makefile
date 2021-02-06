@@ -23,7 +23,7 @@ everything:$(BOOT_BIN) $(LDR_BIN) $(KERNEL_BIN)
 
 $(KERNEL_BIN):$(KERNEL)
 	nasm -f elf $< -l $(subst .asm,.s,$<) -o $(subst .asm,.o,$<)
-	ld -m elf_i386 -s -o $@ $(subst .asm,.o,$<)
+	ld -m elf_i386 -s -Ttext 0x30400 -o $@ $(subst .asm,.o,$<)
 
 .PYTHON:
 clean:
