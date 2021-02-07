@@ -183,7 +183,7 @@ LABEL_FILE_LOADED:
     mov cr0, eax
     jmp dword SelectorFlatC:(BaseOfLoaderPhyAddr + LABEL_PM_START)
 
-    jmp $     ; 将控制权转交给操作系统的启动项KERNEL.BIN
+    jmp $     
 
 
 
@@ -380,10 +380,6 @@ LABEL_PM_START:
     call DispMemInfo
     call SetupPaging
 
-    mov ah, 0Fh
-    mov al, 'P'
-    mov [gs:((80 * 0 + 39) * 2)], ax
-
     call InitKernel
 
     ; 正式进入内核
@@ -504,9 +500,11 @@ DispMemInfo:
 InitKernel:
     xor esi, esi
     xor ecx, ecx
+    xor edx, edx
     mov cx, word [BaseOfKernelFilePhyAddr + 2Ch]    ; ecx <- pELFHdr->e_phnum, Program Header Table中的条目数
     mov esi, [BaseOfKernelFilePhyAddr + 1Ch]        ; esi <- pELFHdr->e_phoff, Program Header Table在文件中的偏移量
     add esi, BaseOfKernelFilePhyAddr                ; esi <- Program Header Table在内存中的首地址
+    mov dx, word [BaseOfKernelFilePhyAddr + 2Ah]    ; dx <- pELFHdr->e_phentsize,每个Program Header大小
 
 .Begin: ; void *MemCpy(void* es:pDest, void* ds:pSrc, int size)
     mov eax, [esi + 0]
@@ -521,7 +519,7 @@ InitKernel:
     add esp, 12
 
 .NoAction:
-    add esi, [BaseOfKernelFilePhyAddr + 2Ah]
+    add esi, edx
     dec ecx
     jnz .Begin
 
