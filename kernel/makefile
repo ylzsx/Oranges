@@ -13,7 +13,7 @@ CC = gcc
 LD = ld
 ASMBFLAGS = -I boot/include/
 ASMKFLAGS = -I include/ -f elf
-CFLAGS = -m32 -I include/ -c
+CFLAGS = -m32 -I include/ -c -Wall -fno-stack-protector
 LDFLAGS = -m elf_i386 -s -Ttext $(ENTRYPOINT)
 DASMFLAGS = -u -o $(ENTRYPOINT) -e $(ENTRYOFFSET)
 
@@ -30,7 +30,7 @@ RM = ~/bash_tool/rm.sh
 # This Program output
 ORANGESBOOT = $(BOOT_BIN) $(LDR_BIN)
 ORANGESKERNEL = $(KERNEL_BIN)
-OBJS = kernel/kernel.o kernel/start.o lib/kliba.o lib/string.o
+OBJS = kernel/kernel.o kernel/start.o kernel/i8259.o kernel/global.o kernel/protect.o lib/klib.o lib/kliba.o lib/string.o
 DASMOUTPUT = kernel.bin.asm
 
 .PHONY:
@@ -65,8 +65,21 @@ $(LDR_BIN): $(LDR) boot/include/load.inc boot/include/fat12hdr.inc boot/include/
 $(KERNEL_BIN): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $(KERNEL_BIN)
 
-kernel/start.o: kernel/start.c include/type.h include/const.h include/protect.h
+# kernel/start.o: kernel/start.c include/type.h include/const.h include/protect.h \
+# 				include/proto.h include/string.h include/global.h
+# 	$(CC) $(CFLAGS) $< -o $@
+
+# kernel/i8259.o: kernel/i8259.c include/type.h include/const.h include/protect.h include/proto.h
+# 	$(CC) $(CFLAGS) $< -o $@
+
+# kernel/kernel.o: kernel/kernel.asm
+# 	$(ASM) $(ASMKFLAGS) $< -o $@
+
+%.o: %.c
 	$(CC) $(CFLAGS) $< -o $@
+
+# lib/klib.o: lib/klib.o
+# 	$(CC) $(CFLAGS) $< -o $@
 
 %.o: %.asm
 	$(ASM) $(ASMKFLAGS) $< -o $@
