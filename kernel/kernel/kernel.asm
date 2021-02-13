@@ -5,8 +5,7 @@ extern cstart
 extern kernel_main
 extern exception_handler
 extern spurious_irq
-extern disp_str
-extern delay
+extern clock_handler
 
 ; 导入全局变量
 extern gdt_ptr
@@ -15,10 +14,6 @@ extern disp_pos
 extern p_proc_ready
 extern tss
 extern k_reenter
-
-BITS 32
-[SECTION .data]
-clock_int_msg db "^", 0
 
 
 BITS 32
@@ -149,18 +144,14 @@ hwint00:                ; Interrupt routine for irq 0 (the clock).
 
     sti                 ; 开中断，允许中断嵌套
 
-    push clock_int_msg
-    call disp_str
-    add esp, 4
-
-    push 1
-    call delay
+    push 0
+    call clock_handler  ; 进程调度
     add esp, 4
 
     cli                             ; 关中断
 
     mov esp, [p_proc_ready]         ; 切换到进程栈
-
+    lldt [esp + P_LDT_SEL]
     lea eax, [esp + P_STACKTOP]
     mov dword [tss + TSS3_S_SP0], eax  ; 保存 ring1 -> ring0 时进入的进程栈顶位置
 

@@ -3,6 +3,7 @@
 ; 导出函数
 global memcpy
 global memset
+global strcpy
 
 ; void* memcpy(void* es:pDest, void* ds:pSrc, int iSize);
 memcpy:
@@ -57,6 +58,34 @@ memset:
 .2:
 
     pop ecx
+    pop edi
+    pop esi
+    pop ebp
+    ret
+
+
+; char* strcpy(char* p_dst, char* p_src);
+strcpy:
+    push ebp
+    mov ebp, esp
+    push esi
+    push edi
+    push eax
+
+    mov edi, [ebp + 8]  ; p_dst
+    mov esi, [ebp + 12] ; p_src
+
+.1:
+    mov al, [esi]
+    inc esi
+    mov byte [edi], al
+    inc edi
+    cmp al, 0
+    jnz .1
+
+    mov eax, [ebp + 8]  ; return
+
+    pop eax
     pop edi
     pop esi
     pop ebp

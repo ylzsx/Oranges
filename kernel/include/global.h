@@ -21,3 +21,4 @@ EXTERN u32 k_reenter;           // 解决中断重入的变量
 
 extern PROCESS proc_table[];    // 进程控制块表，存放所有进程
 extern char task_stack[];       // 进程占用堆栈
+extern TASK task_table[];       // 初始化时进程信息

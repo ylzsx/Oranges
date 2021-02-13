@@ -18,6 +18,8 @@ PUBLIC void init_prot();                            // 设置IDT
 
 /* main.c */
 void TestA();                                       // 进程A
+void TestB();                                       // 进程B
+void TestC();                                       // 进程C
 
 /* kernel.asm */
 void restart();

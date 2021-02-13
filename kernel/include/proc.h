@@ -3,7 +3,7 @@
 #define _ORANGES_PROC_H__
 
 typedef struct s_stackframe {
-    u32 gs;         // 保存进程状态时压栈
+    u32 gs;         // 保存进程状态,由中断服务程序压栈
     u32 fs;
     u32 es;
     u32 ds;
@@ -16,7 +16,7 @@ typedef struct s_stackframe {
     u32 ecx;
     u32 eax;
     u32 retaddr;    // ...
-    u32 eip;        // 跨权跳转时压栈
+    u32 eip;        // 跨权跳转时，由硬件压栈
     u32 cs;
     u32 eflags;
     u32 esp;
@@ -31,10 +31,20 @@ typedef struct s_proc {
     char p_name[16];            // 进程名
 } PROCESS;
 
+/* 初始化进程控制块时，会用到该结构体 */
+typedef struct s_task {
+    task_f initial_eip;         // 进程起始位置
+    int stacksize;              // 进程需要的堆栈大小
+    char name[32];              // 进程名字
+} TASK;
+
 // 进程个数
-#define NR_TASKS    1
+#define NR_TASKS    3
 
 #define STACK_SIZE_TESTA    0x8000
-#define STACK_SIZE_TOTAL    STACK_SIZE_TESTA
+#define STACK_SIZE_TESTB    0x8000
+#define STACK_SIZE_TESTC    0x8000
+
+#define STACK_SIZE_TOTAL    (STACK_SIZE_TESTA + STACK_SIZE_TESTB + STACK_SIZE_TESTC)
 
 #endif
