@@ -1,16 +1,27 @@
-;代码段选择子偏移，loader.asm 中已经确定
-SELECTOR_KERNEL_CS equ 8
+%include "sconst.inc"
 
 ; 导入函数
 extern cstart
+extern kernel_main
 extern exception_handler
 extern spurious_irq
+extern disp_str
+extern delay
 
 ; 导入全局变量
 extern gdt_ptr
 extern idt_ptr
 extern disp_pos
+extern p_proc_ready
+extern tss
+extern k_reenter
 
+BITS 32
+[SECTION .data]
+clock_int_msg db "^", 0
+
+
+BITS 32
 [section .bss]
 StackSpace resb 2 * 1024
 StackTop:
@@ -19,6 +30,7 @@ StackTop:
 [section .text]     ; 代码段
 
 global _start
+global restart
 
 ; 导出异常处理函数入口
 global divide_error
@@ -71,9 +83,29 @@ _start:
     jmp SELECTOR_KERNEL_CS:csinit
 
 csinit:
-    ; 开中断
-    sti
-    hlt
+    ; 设置tr寄存器，加载tss
+    xor eax, eax
+    mov ax, SELECTOR_TSS
+    ltr ax
+
+    jmp kernel_main
+
+    ;hlt
+
+
+restart:
+    mov esp, [p_proc_ready]             ; esp <- 进程控制块起始地址
+    lldt [esp + P_LDT_SEL]              ; 加载进程LDT
+    lea eax, [esp + P_STACKTOP]         ; eax <- 偏移地址
+    mov dword [tss + TSS3_S_SP0], eax   ; 保存 ring1 -> ring0 堆栈切换需要的地址
+
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popad
+    add esp, 4
+    iretd
 
 
 ; 外部中断，宏定义
@@ -93,8 +125,57 @@ csinit:
 
 ; 主8059A
 ALIGN 16
-hwint00:                ; ; Interrupt routine for irq 0 (the clock).
-    hwint_master    0
+hwint00:                ; Interrupt routine for irq 0 (the clock).
+    sub esp, 4      ; 跳过进程控制块中的retaddr
+    pushad
+    push ds
+    push es
+    push fs
+    push gs         ; 保存进程现场
+    mov dx, ss
+    mov ds, dx
+    mov es, dx
+
+    inc byte [gs:0]
+
+    mov al, EOI
+    out INT_M_CTL, al   ; 通知8259A中断处理结束
+
+    inc dword [k_reenter]
+    cmp dword [k_reenter], 0
+    jne .re_enter       ; 解决重入
+
+    mov esp, StackTop   ; 切换到内核栈
+
+    sti                 ; 开中断，允许中断嵌套
+
+    push clock_int_msg
+    call disp_str
+    add esp, 4
+
+    push 1
+    call delay
+    add esp, 4
+
+    cli                             ; 关中断
+
+    mov esp, [p_proc_ready]         ; 切换到进程栈
+
+    lea eax, [esp + P_STACKTOP]
+    mov dword [tss + TSS3_S_SP0], eax  ; 保存 ring1 -> ring0 时进入的进程栈顶位置
+
+.re_enter:
+    dec dword [k_reenter]
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popad
+    add esp, 4
+    iretd
+
+
+
 
 ALIGN 16
 hwint01:                ; Interrupt routine for irq 1 (keyboard)

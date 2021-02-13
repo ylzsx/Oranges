@@ -32,7 +32,7 @@ PUBLIC void init_8259A() {
     out_byte(INT_S_CTLMASK, 0x1);
 
     /* Master 8259, OCW1. 屏蔽所有中断 */
-    out_byte(INT_M_CTLMASK, 0xFD);
+    out_byte(INT_M_CTLMASK, 0xFE);
 
     /* Slave  8259, OCW1. 屏蔽所有中断 */
     out_byte(INT_S_CTLMASK, 0xFF);
