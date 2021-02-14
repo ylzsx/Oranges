@@ -128,10 +128,12 @@ typedef struct s_tss {
 #define INT_VECTOR_PAGE_FAULT   0xE
 #define INT_VECTOR_COPROC_ERR   0x10
 
-/* 中断向量 */
+/* 外部中断向量 */
 #define INT_VECTOR_IRQ0         0x20
 #define INT_VECTOR_IRQ8         0x28
 
+/* 系统调用 */
+#define INT_VECTOR_SYS_CALL     0x90
 
 /* 宏 */
 /**

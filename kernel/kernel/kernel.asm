@@ -14,7 +14,8 @@ extern disp_pos
 extern p_proc_ready
 extern tss
 extern k_reenter
-
+extern irq_table
+extern sys_call_table
 
 BITS 32
 [section .bss]
@@ -61,6 +62,9 @@ global hwint13
 global hwint14
 global hwint15
 
+; 导出系统调用处理函数
+global sys_call
+
 _start:
     ; 切换堆栈
     mov esp, StackTop
@@ -93,69 +97,7 @@ restart:
     lldt [esp + P_LDT_SEL]              ; 加载进程LDT
     lea eax, [esp + P_STACKTOP]         ; eax <- 偏移地址
     mov dword [tss + TSS3_S_SP0], eax   ; 保存 ring1 -> ring0 堆栈切换需要的地址
-
-    pop gs
-    pop fs
-    pop es
-    pop ds
-    popad
-    add esp, 4
-    iretd
-
-
-; 外部中断，宏定义
-%macro hwint_master 1
-    push %1
-    call spurious_irq
-    add esp, 4
-    hlt
-%endmacro
-
-%macro hwint_slave 1
-    push %1
-    call spurious_irq
-    add esp, 4
-    hlt
-%endmacro
-
-; 主8059A
-ALIGN 16
-hwint00:                ; Interrupt routine for irq 0 (the clock).
-    sub esp, 4      ; 跳过进程控制块中的retaddr
-    pushad
-    push ds
-    push es
-    push fs
-    push gs         ; 保存进程现场
-    mov dx, ss
-    mov ds, dx
-    mov es, dx
-
-    inc byte [gs:0]
-
-    mov al, EOI
-    out INT_M_CTL, al   ; 通知8259A中断处理结束
-
-    inc dword [k_reenter]
-    cmp dword [k_reenter], 0
-    jne .re_enter       ; 解决重入
-
-    mov esp, StackTop   ; 切换到内核栈
-
-    sti                 ; 开中断，允许中断嵌套
-
-    push 0
-    call clock_handler  ; 进程调度
-    add esp, 4
-
-    cli                             ; 关中断
-
-    mov esp, [p_proc_ready]         ; 切换到进程栈
-    lldt [esp + P_LDT_SEL]
-    lea eax, [esp + P_STACKTOP]
-    mov dword [tss + TSS3_S_SP0], eax  ; 保存 ring1 -> ring0 时进入的进程栈顶位置
-
-.re_enter:
+restart_reenter:
     dec dword [k_reenter]
     pop gs
     pop fs
@@ -165,8 +107,94 @@ hwint00:                ; Interrupt routine for irq 0 (the clock).
     add esp, 4
     iretd
 
+save:
+    pushad
+    push ds
+    push es
+    push fs
+    push gs         ; 保存进程现场
+    mov dx, ss
+    mov ds, dx
+    mov es, dx
+
+    mov esi, esp    ; 保存进程表起始地址
+
+    inc dword [k_reenter]
+    cmp dword [k_reenter], 0
+    jne .1              ; 重入时跳转到1
+
+    mov esp, StackTop   ; 切换到内核栈
+    push restart
+    jmp [esi + RETADR - P_STACKBASE]    ; return save
+
+.1:                     ; 重入时已经处于内核栈
+    push restart_reenter
+    jmp [esi + RETADR - P_STACKBASE]    ; return save
 
 
+; 外部中断，宏定义
+%macro hwint_master 1
+    call save
+
+    in al, INT_M_CTLMASK
+    or al, (1 << %1)
+    out INT_M_CTLMASK, al   ; 不允许再发生当前中断
+
+    mov al, EOI
+    out INT_M_CTL, al   ; 通知8259A中断处理结束
+    
+    sti                 ; 开中断，允许中断嵌套
+
+    push %1
+    call [irq_table + 4 * %1]   ; 中断处理程序，32位一个指针变量占4个字节
+    pop ecx
+
+    cli                 ; 关中断
+
+    in al, INT_M_CTLMASK
+    and al, ~(1 << %1)
+    out INT_M_CTLMASK, al   ; 打开当前中断
+
+    ret                 ; 重入时跳转到restart_reenter，通常情况下跳转到restart
+%endmacro
+
+%macro hwint_slave 1
+    call save
+
+    mov ah, 1
+    mov cl, %1
+    rol ah, cl          ; 1 << (%1 % 8)
+
+    in al, INT_S_CTLMASK
+    or al, ah
+    out INT_S_CTLMASK, al   ; 不允许再发生当前中断
+
+    mov al, EOI
+    out INT_S_CTL, al   ; 通知8259A中断处理结束
+    
+    sti                 ; 开中断，允许中断嵌套
+
+    push %1
+    call [irq_table + 4 * %1]   ; 中断处理程序，32位一个指针变量占4个字节
+    pop ecx
+
+    cli                 ; 关中断
+
+    mov ah, ~1
+    mov cl, %1
+    rol ah, cl          ; ~(1 << (%1 % 8))
+
+    in al, INT_S_CTLMASK
+    and al, ah
+    out INT_S_CTLMASK, al   ; 打开当前中断
+
+    ret                 ; 重入时跳转到restart_reenter，通常情况下跳转到restart
+%endmacro
+
+; 主8059A
+ALIGN 16
+hwint00:                ; Interrupt routine for irq 0 (the clock).
+    hwint_master    0
 
 ALIGN 16
 hwint01:                ; Interrupt routine for irq 1 (keyboard)
@@ -295,3 +323,15 @@ exception:
     call exception_handler
     add esp,4*2         ; 栈顶指向eip
     hlt
+
+
+; 系统调用处理函数
+sys_call:
+    call save
+    sti
+
+    call [sys_call_table + eax * 4]
+    mov [esi + EAXREG - P_STACKBASE], eax   ; 保存返回值到进程表eax
+
+    cli
+    ret

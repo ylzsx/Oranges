@@ -70,7 +70,6 @@ strcpy:
     mov ebp, esp
     push esi
     push edi
-    push eax
 
     mov edi, [ebp + 8]  ; p_dst
     mov esi, [ebp + 12] ; p_src
@@ -85,7 +84,6 @@ strcpy:
 
     mov eax, [ebp + 8]  ; return
 
-    pop eax
     pop edi
     pop esi
     pop ebp

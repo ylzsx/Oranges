@@ -2,6 +2,18 @@
 #include "const.h"
 #include "protect.h"
 #include "proto.h"
+#include "proc.h"
+#include "global.h"
+
+/**
+ * 外部中断处理
+ * @param irq   中断向量号
+ */
+PUBLIC void spurious_irq(int irq) {
+    disp_str("spurious_irq: ");
+    disp_int(irq);
+    disp_str("\n");
+}
 
 /**
  *  初始化中断控制器
@@ -32,18 +44,22 @@ PUBLIC void init_8259A() {
     out_byte(INT_S_CTLMASK, 0x1);
 
     /* Master 8259, OCW1. 屏蔽所有中断 */
-    out_byte(INT_M_CTLMASK, 0xFE);
+    out_byte(INT_M_CTLMASK, 0xFF);
 
     /* Slave  8259, OCW1. 屏蔽所有中断 */
     out_byte(INT_S_CTLMASK, 0xFF);
+
+    int i;
+    for (i = 0; i < NR_IRQ; i++)
+        irq_table[i] = spurious_irq;
 }
 
 /**
- * 外部中断处理
- * @param irq   中断向量号
+ * 为制定外部中断设置中断处理程序
+ * @param irq       中断向量号
+ * @param handler   中断处理程序入口
  */
-PUBLIC void spurious_irq(int irq) {
-    disp_str("spurious_irq: ");
-    disp_int(irq);
-    disp_str("\n");
+PUBLIC void put_irq_handler(int irq, irq_handler handler) {
+    disable_irq(irq);   // 屏蔽此中断，需要使用时再打开
+    irq_table[irq] = handler;
 }

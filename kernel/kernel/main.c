@@ -44,9 +44,15 @@ PUBLIC int kernel_main() {
         p_proc++;
     }
 
-    k_reenter = -1;
+    k_reenter = 0;  // 中断重入时会用到该变量
+    ticks = 0;
 
     p_proc_ready = proc_table;
+
+    // 设定时钟中断处理程序，并打开时钟中断使能
+    put_irq_handler(CLOCK_IRQ, clock_handler);
+    enable_irq(CLOCK_IRQ);
+
     restart();
 
     while (1) {}
@@ -56,10 +62,9 @@ PUBLIC int kernel_main() {
  * 进程A
  */
 void TestA() {
-    int i = 0;
     while (1) {
         disp_str("A");
-        disp_int(i++);
+        disp_int(get_ticks());
         disp_str(".");
         delay(1);
     }

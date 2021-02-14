@@ -15,7 +15,7 @@ typedef struct s_stackframe {
     u32 edx;
     u32 ecx;
     u32 eax;
-    u32 retaddr;    // ...
+    u32 retaddr;    // call save语句产生的、被压栈的返回地址
     u32 eip;        // 跨权跳转时，由硬件压栈
     u32 cs;
     u32 eflags;
@@ -39,7 +39,7 @@ typedef struct s_task {
 } TASK;
 
 // 进程个数
-#define NR_TASKS    3
+#define NR_TASKS            3
 
 #define STACK_SIZE_TESTA    0x8000
 #define STACK_SIZE_TESTB    0x8000
