@@ -49,4 +49,21 @@
 /* 系统调用 */
 #define NR_SYS_CALL     1
 
+/* 8253/8254 PIT */
+#define TIMER0          0x40        // I/O port for timer channel 0
+#define TIMER_MODE      0x43        // I/O port for timer mode control
+#define RATE_GENERATOR  0x34        // 00(0号端口) 11(写两个字节)  010(模式2) 0(二进制)
+#define TIMER_FREQ      1193182L    // PC 上的输入频率
+#define HZ              100         // 时钟中断频率
+
+/* Color */
+#define BLACK           0x0     /* 0000 */
+#define WHITE           0x7     /* 0111 */
+#define RED             0x4     /* 0100 */
+#define GREEN           0x2     /* 0010 */
+#define BLUE            0x1     /* 0001 */
+#define FLASH           0x80    /* 1000 0000 */
+#define BRIGHT          0x08    /* 0000 1000 */
+#define MAKE_COLOR(x, y) (x | y) /* MAKE_COLOR(Background,Foreground) */
+
 #endif

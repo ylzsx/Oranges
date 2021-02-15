@@ -27,6 +27,8 @@ typedef struct s_proc {
     STACK_FRAME regs;
     u16 ldt_sel;                // ldt在gdt中对应的选择子
     DESCRIPTOR ldts[LDT_SIZE];  // ldt描述符
+    int ticks;                  // 初始值等于priority,每被调度一次减一，减为0后重新赋值为priority
+    int priority;               // 优先级
     u32 pid;                    // 进程号，用于内存管理
     char p_name[16];            // 进程名
 } PROCESS;

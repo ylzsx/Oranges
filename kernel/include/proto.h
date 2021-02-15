@@ -29,11 +29,16 @@ void TestC();                                       // 进程C
 void restart();
 PUBLIC void sys_call();                             // 系统调用处理函数
 
-/* clock.c */
-PUBLIC void clock_handler(int irq);                 // 时钟中断，进程调度
-
 /* syscall.asm */
 PUBLIC int get_ticks();                             // 系统调用,返回发生时钟中断次数
 
 /* proc.c */
 PUBLIC int sys_get_ticks();
+PUBLIC void schedule();                             // 进程调度函数
+
+/* clock.c */
+PUBLIC void init_clock();
+PUBLIC void milli_delay(int milli_sec);             // 毫秒级延迟
+
+/* keyboard.c */
+PUBLIC void init_keyboard();                             // 初始化键盘中断处理程序
