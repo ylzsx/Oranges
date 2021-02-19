@@ -25,7 +25,7 @@ LDR_BIN = $(subst .asm,.bin,$(LDR))
 KERNEL_BIN = kernel.bin
 IMG = os.img
 FLOPPY = /mnt/floppy/
-RM = ~/bash_tool/rm.sh
+RM = ~/bash_tools/rm.sh
 
 # This Program output
 ORANGESBOOT = $(BOOT_BIN) $(LDR_BIN)
