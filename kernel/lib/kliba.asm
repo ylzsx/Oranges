@@ -10,6 +10,8 @@ global out_byte
 global in_byte
 global enable_irq
 global disable_irq
+global enable_int
+global disable_int
 
 ; void disp_str(char * pszInfo);
 ; 使用该函数 gs应指向显存
@@ -202,4 +204,17 @@ enable_8:
     and al, ah
     out INT_S_CTLMASK, al
     popf
+    ret
+
+
+; void enable_int();
+; 开中断
+enable_int:
+    sti
+    ret
+
+; void disable_int();
+; 关中断
+disable_int:
+    cli
     ret

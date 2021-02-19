@@ -9,6 +9,9 @@ PUBLIC void disp_color_str(char *info, int color);  // 显示带色字符串
 PUBLIC void disable_irq(int irq);                   // 屏蔽指定外部中断
 PUBLIC void enable_irq(int irq);                    // 使能指定外部中断 
 
+PUBLIC void enable_int();                           // 开中断
+PUBLIC void disable_int();                          // 关中断
+
 /* lib/klib,c */
 PUBLIC void disp_int(int input);                    // 打印一个32位整形数
 PUBLIC void delay(int time);                        // 延迟一段时间
@@ -41,4 +44,9 @@ PUBLIC void init_clock();
 PUBLIC void milli_delay(int milli_sec);             // 毫秒级延迟
 
 /* keyboard.c */
-PUBLIC void init_keyboard();                             // 初始化键盘中断处理程序
+PUBLIC void init_keyboard();                        // 初始化键盘中断处理程序
+PUBLIC void keyboard_read();                        // 读取键盘缓冲区
+
+/* tty.c */
+PUBLIC void task_tty();
+PUBLIC void in_process(u32 key);                    // 键盘字符处理函数

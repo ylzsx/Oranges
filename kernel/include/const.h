@@ -66,4 +66,8 @@
 #define BRIGHT          0x08    /* 0000 1000 */
 #define MAKE_COLOR(x, y) (x | y) /* MAKE_COLOR(Background,Foreground) */
 
+/* 8042 键盘控制器 */
+#define KB_DATA         0x60    // I/O port for keyboard data
+#define KB_CMD          0x64    // I/O port for keyboard command
+
 #endif
