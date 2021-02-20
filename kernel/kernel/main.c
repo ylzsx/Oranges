@@ -1,6 +1,8 @@
 #include "type.h"
 #include "const.h"
 #include "protect.h"
+#include "tty.h"
+#include "console.h"
 #include "proto.h"
 #include "string.h"
 #include "proc.h"
@@ -54,7 +56,6 @@ PUBLIC int kernel_main() {
     p_proc_ready = proc_table;
 
     init_clock();
-    init_keyboard();
 
     // 清空屏幕
     // disp_pos = 0;

@@ -31,7 +31,7 @@ RM = ~/bash_tools/rm.sh
 ORANGESBOOT = $(BOOT_BIN) $(LDR_BIN)
 ORANGESKERNEL = $(KERNEL_BIN)
 OBJS = kernel/kernel.o kernel/start.o kernel/main.o kernel/i8259.o kernel/global.o kernel/protect.o \
-	   kernel/clock.o kernel/keyboard.o kernel/syscall.o kernel/proc.o kernel/tty.o \
+	   kernel/clock.o kernel/keyboard.o kernel/syscall.o kernel/proc.o kernel/tty.o kernel/console.o \
 	   lib/klib.o lib/kliba.o lib/string.o
 DASMOUTPUT = kernel.bin.asm
 

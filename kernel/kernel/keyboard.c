@@ -1,6 +1,8 @@
 #include "type.h"
 #include "const.h"
 #include "protect.h"
+#include "tty.h"
+#include "console.h"
 #include "proto.h"
 #include "proc.h"
 #include "keyboard.h"
@@ -16,9 +18,9 @@ PRIVATE int alt_l;
 PRIVATE int alt_r;
 PRIVATE int ctrl_l;
 PRIVATE int ctrl_r;
-PRIVATE int caps_lock;
-PRIVATE int num_lock;
-PRIVATE int scroll_lock;
+// PRIVATE int caps_lock;
+// PRIVATE int num_lock;
+// PRIVATE int scroll_lock;
 PRIVATE int column;
 
 /**
@@ -75,8 +77,9 @@ PRIVATE u8 get_byte_from_kbuf() {
 
 /**
  * 解析扫描码
+ * @param p_tty 解析结束后，交给p_tty处理解析结果
  */
-PUBLIC void keyboard_read() {
+PUBLIC void keyboard_read(TTY* p_tty) {
     u8 scan_code;
     int make;       // TRUE: make code; FALSE: break code
     u32 key = 0;    // 表示键,低8位(0~7)为真正的键值，第8位为1表示不可打印字符，第9位为1表示 shift_l....(详见keyboard.h)
@@ -166,7 +169,7 @@ PUBLIC void keyboard_read() {
                 key |= (alt_l ? FLAG_ALT_L : 0);
                 key |= (alt_r ? FLAG_ALT_L : 0);
 
-                in_process(key);
+                in_process(p_tty, key);
             }
         }
     }

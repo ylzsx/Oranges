@@ -5,27 +5,27 @@
 /************************************************************************/
 /*                          Macros Declaration                          */
 /************************************************************************/
-#define KB_IN_BYTES 32  /* size of keyboard input buffer */
-#define MAP_COLS    3   /* Number of columns in keymap */
+#define KB_IN_BYTES     32  /* size of keyboard input buffer */
+#define MAP_COLS        3   /* Number of columns in keymap */
 #define NR_SCAN_CODES   0x80    /* Number of scan codes (rows in keymap) */
 
-#define FLAG_BREAK  0x0080      /* Break Code           */
-#define FLAG_EXT    0x0100      /* Normal function keys     */
+#define FLAG_BREAK      0x0080      /* Break Code           */
+#define FLAG_EXT        0x0100      /* Normal function keys     */
 #define FLAG_SHIFT_L    0x0200      /* Shift key            */
 #define FLAG_SHIFT_R    0x0400      /* Shift key            */
-#define FLAG_CTRL_L 0x0800      /* Control key          */
-#define FLAG_CTRL_R 0x1000      /* Control key          */
-#define FLAG_ALT_L  0x2000      /* Alternate key        */
-#define FLAG_ALT_R  0x4000      /* Alternate key        */
-#define FLAG_PAD    0x8000      /* keys in num pad      */
+#define FLAG_CTRL_L     0x0800      /* Control key          */
+#define FLAG_CTRL_R     0x1000      /* Control key          */
+#define FLAG_ALT_L      0x2000      /* Alternate key        */
+#define FLAG_ALT_R      0x4000      /* Alternate key        */
+#define FLAG_PAD        0x8000      /* keys in num pad      */
 
-#define MASK_RAW    0x01FF      /* raw key value = code passed to tty & MASK_RAW
+#define MASK_RAW        0x01FF      /* raw key value = code passed to tty & MASK_RAW
                        the value can be found either in the keymap column 0
                        or in the list below */
 
 /* Special keys */
-#define ESC     (0x01 + FLAG_EXT)   /* Esc      */
-#define TAB     (0x02 + FLAG_EXT)   /* Tab      */
+#define ESC         (0x01 + FLAG_EXT)   /* Esc      */
+#define TAB         (0x02 + FLAG_EXT)   /* Tab      */
 #define ENTER       (0x03 + FLAG_EXT)   /* Enter    */
 #define BACKSPACE   (0x04 + FLAG_EXT)   /* BackSpace    */
 
@@ -47,18 +47,18 @@
 #define SCROLL_LOCK (0x10 + FLAG_EXT)   /* Scroll Lock  */
 
 /* Function keys */
-#define F1      (0x11 + FLAG_EXT)   /* F1       */
-#define F2      (0x12 + FLAG_EXT)   /* F2       */
-#define F3      (0x13 + FLAG_EXT)   /* F3       */
-#define F4      (0x14 + FLAG_EXT)   /* F4       */
-#define F5      (0x15 + FLAG_EXT)   /* F5       */
-#define F6      (0x16 + FLAG_EXT)   /* F6       */
-#define F7      (0x17 + FLAG_EXT)   /* F7       */
-#define F8      (0x18 + FLAG_EXT)   /* F8       */
-#define F9      (0x19 + FLAG_EXT)   /* F9       */
-#define F10     (0x1A + FLAG_EXT)   /* F10      */
-#define F11     (0x1B + FLAG_EXT)   /* F11      */
-#define F12     (0x1C + FLAG_EXT)   /* F12      */
+#define F1          (0x11 + FLAG_EXT)   /* F1       */
+#define F2          (0x12 + FLAG_EXT)   /* F2       */
+#define F3          (0x13 + FLAG_EXT)   /* F3       */
+#define F4          (0x14 + FLAG_EXT)   /* F4       */
+#define F5          (0x15 + FLAG_EXT)   /* F5       */
+#define F6          (0x16 + FLAG_EXT)   /* F6       */
+#define F7          (0x17 + FLAG_EXT)   /* F7       */
+#define F8          (0x18 + FLAG_EXT)   /* F8       */
+#define F9          (0x19 + FLAG_EXT)   /* F9       */
+#define F10         (0x1A + FLAG_EXT)   /* F10      */
+#define F11         (0x1B + FLAG_EXT)   /* F11      */
+#define F12         (0x1C + FLAG_EXT)   /* F12      */
 
 /* Control Pad */
 #define PRINTSCREEN (0x1D + FLAG_EXT)   /* Print Screen */
@@ -66,10 +66,10 @@
 #define INSERT      (0x1F + FLAG_EXT)   /* Insert   */
 #define DELETE      (0x20 + FLAG_EXT)   /* Delete   */
 #define HOME        (0x21 + FLAG_EXT)   /* Home     */
-#define END     (0x22 + FLAG_EXT)   /* End      */
+#define END         (0x22 + FLAG_EXT)   /* End      */
 #define PAGEUP      (0x23 + FLAG_EXT)   /* Page Up  */
-#define PAGEDOWN    (0x24 + FLAG_EXT)   /* Page Down    */
-#define UP      (0x25 + FLAG_EXT)   /* Up       */
+#define PAGEDOWN    (0x24 + FLAG_EXT)   /* Page Down*/
+#define UP          (0x25 + FLAG_EXT)   /* Up       */
 #define DOWN        (0x26 + FLAG_EXT)   /* Down     */
 #define LEFT        (0x27 + FLAG_EXT)   /* Left     */
 #define RIGHT       (0x28 + FLAG_EXT)   /* Right    */

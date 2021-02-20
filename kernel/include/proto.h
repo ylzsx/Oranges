@@ -45,8 +45,15 @@ PUBLIC void milli_delay(int milli_sec);             // 毫秒级延迟
 
 /* keyboard.c */
 PUBLIC void init_keyboard();                        // 初始化键盘中断处理程序
-PUBLIC void keyboard_read();                        // 读取键盘缓冲区
+PUBLIC void keyboard_read(TTY* p_tty);              // 读取键盘缓冲区
 
 /* tty.c */
 PUBLIC void task_tty();
-PUBLIC void in_process(u32 key);                    // 键盘字符处理函数
+PUBLIC void in_process(TTY *p_tty, u32 key);        // 键盘字符处理函数
+
+/* console.c */
+PUBLIC int is_current_console(CONSOLE* p_con);      // 判断是否当前控制台
+PUBLIC void out_char(CONSOLE* p_con, char ch);      // 输出字符到指定控制台
+PUBLIC void init_screen(TTY *p_tty);                // 初始化控制台
+PUBLIC void select_console(int nr_console);         // 切换屏幕
+PUBLIC void scroll_screen(CONSOLE *p_con, int direction);    // 滚动内容
