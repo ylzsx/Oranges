@@ -41,7 +41,8 @@ typedef struct s_task {
 } TASK;
 
 // 进程个数
-#define NR_TASKS            4
+#define NR_TASKS            1
+#define NR_PROCS            3
 
 #define STACK_SIZE_TTY      0x8000
 #define STACK_SIZE_TESTA    0x8000

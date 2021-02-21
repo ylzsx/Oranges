@@ -25,7 +25,8 @@ EXTERN int nr_current_console;  // 当前控制台
 
 extern PROCESS proc_table[];            // 进程控制块表，存放所有进程
 extern char task_stack[];               // 进程占用堆栈
-extern TASK task_table[];               // 初始化时进程信息
+extern TASK task_table[];               // 初始化时任务信息
+extern TASK user_proc_table[];          // 初始化用户进程信息
 extern irq_handler irq_table[];         // 外部中断处理程序
 extern system_call sys_call_table[];    // 系统调用处理程序
 extern TTY tty_table[];                 // tty

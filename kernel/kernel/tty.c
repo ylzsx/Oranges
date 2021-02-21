@@ -47,6 +47,21 @@ PRIVATE void tty_do_write(TTY* p_tty) {
 }
 
 /**
+ * 将 key 放入 p_tty 对应的缓冲区
+ * @param p_tty tty
+ * @param key   要放入的值
+ */
+PRIVATE void put_key(TTY *p_tty, u32 key) {
+    if (p_tty->inbuf_count < TTY_IN_BYTES) {    // 写入 tty buf
+        *(p_tty->p_inbuf_head) = key;
+        p_tty->p_inbuf_head++;
+        if (p_tty->p_inbuf_head == p_tty->in_buf + TTY_IN_BYTES)
+            p_tty->p_inbuf_head = p_tty->in_buf;
+        p_tty->inbuf_count++;
+    }
+}
+
+/**
  * 处理tty终端的进程: 初始化keyboard/tty -> 读keyboard buf到对应tty buf -> 写显存
  */
 PUBLIC void task_tty() {
@@ -73,16 +88,16 @@ PUBLIC void task_tty() {
 PUBLIC void in_process(TTY *p_tty, u32 key) {
 
     if (!(key & FLAG_EXT)) {    // 可打印字符
-        if (p_tty->inbuf_count < TTY_IN_BYTES) {    // 写入 tty buf
-            *(p_tty->p_inbuf_head) = key;
-            p_tty->p_inbuf_head++;
-            if (p_tty->p_inbuf_head == p_tty->in_buf + TTY_IN_BYTES)
-                p_tty->p_inbuf_head = p_tty->in_buf;
-            p_tty->inbuf_count++;
-        }
+        put_key(p_tty, key);
     } else {    // 不可打印字符
         int raw_code = key & MASK_RAW;
         switch (raw_code) {
+            case ENTER:
+                put_key(p_tty, '\n');
+                break;
+            case BACKSPACE:
+                put_key(p_tty, '\b');
+                break;
             case UP:
                 if ((key & FLAG_SHIFT_L) || (key & FLAG_SHIFT_R))     // shift + up 屏幕向前滚动15行
                     scroll_screen(p_tty->p_console, SCR_DN);

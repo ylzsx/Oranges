@@ -69,7 +69,8 @@
 /* 8042 键盘控制器 */
 #define KB_DATA         0x60    // I/O port for keyboard data
 #define KB_CMD          0x64    // I/O port for keyboard command
-
+#define LED_CODE        0xED    // 设置键盘 LED 的命令
+#define KB_ACK          0xFA    // 键盘返回的ACK
 
 /* TTY */
 #define NR_CONSOLES     3
